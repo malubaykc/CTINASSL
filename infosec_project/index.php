@@ -11,6 +11,19 @@
                     box-sizing: border-box;
                 }
 
+                /* HIDE SCROLLBAR */
+                body, html {
+                    overflow: hidden;
+                    overflow-y: scroll;
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+
+                body::-webkit-scrollbar, html::-webkit-scrollbar {
+                    display: none;
+                }
+                /* HIDE SCROLLBAR */
+                
                 body {
                     font-family: Arial, sans-serif;
                     background-color: #f0f0f0;
@@ -86,6 +99,10 @@
                     padding: 10px;
                     margin-bottom: 10px;
                     background: #fafafa;
+                }
+                
+                .notes-list td:hover {
+                    background: #ddd;
                 }
 
                 table {
@@ -164,6 +181,16 @@
                 $stmt->execute(['nid' => $nid]);
                 echo "<br>Data deleted successfully!<hr>";
             }
+
+            if (isset($_POST['update_note_id']) && isset($_POST['updated_title']) && isset($_POST['updated_content'])) {
+                $nid = $_POST['update_note_id'];
+                $title = $_POST['updated_title'];
+                $content = $_POST['updated_content'];
+
+                $sql = "UPDATE notes SET note_title = :title, note_content = :content WHERE note_id = :nid";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(['title' => $title, 'content' => $content, 'nid' => $nid]);
+            }
         }
 
         $sql = "SELECT note_id, note_title, note_content FROM notes";
@@ -177,18 +204,42 @@
             $stmt2->execute(['nid' => $nid]);
             $datas = $stmt2->fetchAll();
         }
+
+        $title = $content = "";
+        if (isset($_GET['edit'])) {
+            $nid = $_GET['edit'];
+            $sql = "SELECT note_title, note_content FROM notes WHERE note_id = :nid";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['nid' => $nid]);
+            $row = $stmt->fetch();
+
+            if ($row) {
+                $title = $row['note_title'];
+                $content = $row['note_content'];
+            }
+        }
         ?>
         
         <body>
             <div class="container">
                 <div class="sidebar">
+                    <!-- NEW PAGE -->
                     <?php if (isset($_GET['newpage'])): ?>
                         <button type="button" onclick="submitData()">Save</button>
                         <button onclick="window.location.href='/infosec_project/'">Cancel</button>
+
+                    <!-- NOTES -->
                     <?php elseif (isset($_GET['note'])): ?>
-                        <button>Edit</button>
+                        <button type="button" onclick="window.location.href='/infosec_project/?edit=<?= $_GET['note'] ?>'">Edit</button>
                         <button type="button" onclick="deleteData(<?= $_GET['note'] ?>)">Delete</button>
                         <button onclick="window.location.href='/infosec_project/'">Back</button>
+
+                    <!-- EDIT -->
+                    <?php elseif (isset($_GET['edit'])): ?>
+                        <button type="button" onclick="updateData(<?= $_GET['edit'] ?>)">Save</button>
+                        <button type="button" onclick="window.location.href='/infosec_project/?note=<?= $_GET['edit'] ?>'">Cancel</button>
+
+                    <!-- DEFAULT -->
                     <?php else: ?>
                         <button onclick="window.location.href='?newpage=true'">New Page</button>
                     <?php endif; ?>
@@ -213,24 +264,40 @@
                             <table>
                                 <?php foreach ($rows as $row): ?>
                                     <tr>
-                                        <td onclick="window.location.href='?note=' + <?= $row['note_id']; ?>;"><h3><?= htmlspecialchars($row['note_title']); ?></h3> <br> <?= htmlspecialchars($row['note_content']); ?></td>
+                                    <td onclick="window.location.href='?note=' + <?= $row['note_id']; ?>;">
+                                        <h3><?= htmlspecialchars($row['note_title']); ?></h3>
+                                        <br>
+                                        <?= htmlspecialchars(substr($row['note_content'], 0, 40)) . (strlen($row['note_content']) > 40 ? '...' : ''); ?>
+                                    </td>
                                     </tr>
                                 <?php endforeach ?>
                             </table>
                         </div>
 
+                        <!-- NEW PAGE -->
                         <?php if (isset($_GET['newpage'])): ?>
                             <div class="write-section">
-                                <input type="text" id="Title" placeholder="Title">
-                                <textarea id="Content"></textarea>
+                                <input type="text" id="Title" placeholder="Title" required>
+                                <textarea id="Content" required></textarea>
                             </div>
+
+                        <!-- NOTES -->
                         <?php elseif (isset($_GET['note'])): ?>
                             <div class="write-section">
                                 <?php foreach ($datas as $data): ?>
                                     <h3><?= $data['note_title']?></h3>
-                                    <p><?= $data['note_content']?></p>
+                                    <p style="word-wrap: break-word; overflow-wrap: break-word; max-width: 390px;"><?= $data['note_content']?></p>
                                 <?php endforeach ?>
                             </div>
+
+                        <!-- EDIT -->
+                        <?php elseif (isset($_GET['edit'])): ?>
+                            <div class="write-section">
+                                <input type="text" id="Title" value="<?php echo htmlspecialchars($title); ?>" required>
+                                <textarea id="Content" required><?php echo htmlspecialchars_decode($content); ?></textarea>
+                            </div>
+
+                        <!-- DEFAULT -->
                         <?php else: ?>
                             <div class="write-section">
                                 <h2>Write your ideas</h2>
@@ -268,6 +335,29 @@
         function deleteData(noteId) {
             const formData = new FormData();
             formData.append('delete_note_id', noteId);
+
+            fetch('index.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(result => {
+                console.log('Success:', result);
+                window.location.href = '/infosec_project/';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function updateData(editId) {
+            const titleInput = document.getElementById('Title').value;
+            const contentInput = document.getElementById('Content').value;
+
+            const formData = new FormData();
+            formData.append('update_note_id', editId);
+            formData.append('updated_title', titleInput);
+            formData.append('updated_content', contentInput);
 
             fetch('index.php', {
                 method: 'POST',
