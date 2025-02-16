@@ -1,0 +1,26 @@
+{
+  "version": "2.3.0",
+  "summary": {
+    "title": "Notes App Threat Model",
+    "owner": "Group ",
+    "description": "A web-based Notes App that allows users to create, edit, delete, and search notes. Users interact through a frontend (HTML, JavaScript) while the backend (PHP, MySQL) manages note storage and user input. The system is deployed on a local web server.\n",
+    "id": 0
+  },
+  "detail": {
+    "contributors": [],
+    "diagrams": [
+      {
+        "id": 0,
+        "title": "New STRIDE diagram",
+        "diagramType": "STRIDE",
+        "placeholder": "New STRIDE diagram description",
+        "thumbnail": "./public/content/images/thumbnail.stride.jpg",
+        "version": "2.3.0",
+        "cells": []
+      }
+    ],
+    "diagramTop": 2,
+    "reviewer": "Project Reviewer ",
+    "threatTop": 0
+  }
+}
